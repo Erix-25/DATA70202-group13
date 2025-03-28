@@ -1,6 +1,7 @@
 from bs4 import BeautifulSoup
 import pandas as pd
 import re
+import string
 
 all_players = pd.DataFrame()
 
@@ -68,7 +69,8 @@ def CA(tour_name, txt_file_name): #function to take html from play.cricket.com.a
 def ECB(tour_name, xlsx_file_name): #function to take xlsx files from ecb.play-cricket.com
     tour_df = pd.read_excel(xlsx_file_name)
     tour_df['player'] = tour_df['Player']
-    tour_df['team'] = tour_df['Club'].str.replace("CC","")
+    teams = tour_df['Club'].str.replace("CC","").str.split(",", n=1, expand=True)
+    tour_df['team'] = teams[0]
     tour_df['comp'] = tour_name
     tour_df = tour_df.drop(['Player','Club'], axis=1)
     
@@ -94,8 +96,17 @@ def Clean_names(player_name):
     else:
         return player_name
     
+#Cleaning up player names
 all_players['player'] = all_players['player'].apply(Clean_names).str.lower().str.strip()
-all_players['team'] = all_players['team'].str.lower().str.strip()
+
+#Cleaning up team names
+translator = str.maketrans('', '', string.punctuation)
+team_names = list(all_players['team'].str.lower().str.strip())
+for i in range(0,len(team_names)):
+    team_names[i] = team_names[i].translate(translator)
+all_players['team'] = team_names
+
+#Fixing the index
 all_players = all_players.reset_index(drop=True)
 
 
@@ -105,9 +116,5 @@ for i in range(0,len(names)):
     
 all_players['surname'] = names
 
-
-
-
-
-
-    
+#Saving the final dataset to a CSV for later reference
+all_players.to_csv('player_data.csv')
